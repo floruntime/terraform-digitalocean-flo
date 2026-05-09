@@ -1,0 +1,30 @@
+[server]
+port = ${listen_port}
+bind = "${bind_address}"
+data_dir = "${data_dir}"
+shards = ${shards}
+
+[storage]
+durability = "${durability}"
+%{ if hot_buffer_capacity > 0 ~}
+hot_buffer_capacity = ${hot_buffer_capacity}
+%{ endif ~}
+
+[logging]
+level = "${log_level}"
+
+[metrics]
+enabled = ${enable_metrics}
+# port auto-derived: listen_port + 1
+
+[dashboard]
+enabled = ${enable_dashboard}
+bind = "${dashboard_bind_address}"
+# port auto-derived: listen_port + 2
+%{ if cluster_enabled ~}
+
+[cluster]
+enabled = true
+node_id = ${cluster_node_id}
+seeds = [${join(", ", [for s in cluster_seeds : "\"${s}\""])}]
+%{ endif ~}

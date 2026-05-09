@@ -1,0 +1,72 @@
+#!/bin/bash
+# Cloud-init for Flo on Ubuntu/Debian. Runs once per droplet.
+# Logs land in /var/log/user-data.log for post-mortem.
+set -euo pipefail
+
+exec > >(tee -a /var/log/user-data.log) 2>&1
+
+echo "[flo] cloud-init starting at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+if ! command -v curl >/dev/null 2>&1; then
+  apt-get update -y -qq
+  apt-get install -y -qq curl ca-certificates
+fi
+
+# Install flo via the upstream installer. Pinned via flo_version so
+# this is reproducible across applies (empty == latest).
+%{ if flo_version != "" ~}
+curl -fsSL https://raw.githubusercontent.com/floruntime/flo/master/scripts/install.sh \
+  | sh -s -- --version "${flo_version}" --dir /usr/local/bin
+%{ else ~}
+curl -fsSL https://raw.githubusercontent.com/floruntime/flo/master/scripts/install.sh \
+  | sh -s -- --dir /usr/local/bin
+%{ endif ~}
+
+# Dedicated system user for the flo daemon.
+if ! id -u flo >/dev/null 2>&1; then
+  useradd --system --home-dir /var/lib/flo --shell /usr/sbin/nologin flo
+fi
+
+# Drop the rendered config.
+mkdir -p /etc/flo
+cat > /etc/flo/flo.toml <<'FLOTOML'
+${flotoml}
+FLOTOML
+chown -R flo:flo /etc/flo
+chmod 640 /etc/flo/flo.toml
+
+# Data directory.
+install -d -o flo -g flo -m 0750 /var/lib/flo
+
+# systemd unit.
+cat > /etc/systemd/system/flo.service <<'UNIT'
+[Unit]
+Description=Flo Server
+Documentation=https://github.com/floruntime/flo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flo
+Group=flo
+ExecStart=/usr/local/bin/flo server start --config /etc/flo/flo.toml
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=1048576
+# Tighten the runtime sandbox a bit; Flo only needs its data dir.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ReadWritePaths=/var/lib/flo
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable flo
+systemctl restart flo
+
+echo "[flo] cloud-init complete; flo managed by systemd"
