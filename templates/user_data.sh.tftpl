@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/floruntime/flo/master/scripts/insta
 
 # Dedicated system user for the flo daemon.
 if ! id -u flo >/dev/null 2>&1; then
-  useradd --system --home-dir /var/lib/flo --shell /usr/sbin/nologin flo
+  useradd --system --home-dir ${data_dir} --shell /usr/sbin/nologin flo
 fi
 
 # Drop the rendered config.
@@ -35,11 +35,68 @@ FLOTOML
 chown -R flo:flo /etc/flo
 chmod 640 /etc/flo/flo.toml
 
+%{ if volume_enabled ~}
+# ---------------------------------------------------------------
+# Persistent block-storage volume for ${data_dir}.
+#
+# DigitalOcean attaches volumes at boot when volume_ids is set on
+# the droplet, but the udev symlink can take a moment to settle —
+# wait for it before formatting / mounting.
+# ---------------------------------------------------------------
+DEVICE="${volume_device_path}"
+MOUNT_POINT="${data_dir}"
+FSTYPE="${volume_filesystem_type}"
+
+echo "[flo] waiting for volume device $${DEVICE}"
+for _ in $(seq 1 60); do
+  if [ -e "$${DEVICE}" ]; then break; fi
+  sleep 1
+done
+if [ ! -e "$${DEVICE}" ]; then
+  echo "[flo] FATAL: volume device $${DEVICE} did not appear within 60s" >&2
+  exit 1
+fi
+
+# Resolve the symlink to the underlying block device for blkid.
+REAL_DEVICE="$(readlink -f "$${DEVICE}")"
+
+# Format only if the volume is blank. Re-attached volumes keep their
+# existing filesystem (and data) untouched.
+EXISTING_FS="$(blkid -o value -s TYPE "$${REAL_DEVICE}" || true)"
+if [ -z "$${EXISTING_FS}" ]; then
+  echo "[flo] formatting $${REAL_DEVICE} as $${FSTYPE}"
+  case "$${FSTYPE}" in
+    ext4) mkfs.ext4 -F -L flo-data "$${REAL_DEVICE}" ;;
+    xfs)
+      if ! command -v mkfs.xfs >/dev/null 2>&1; then
+        apt-get install -y -qq xfsprogs
+      fi
+      mkfs.xfs -f -L flo-data "$${REAL_DEVICE}"
+      ;;
+  esac
+else
+  echo "[flo] reusing existing $${EXISTING_FS} filesystem on $${REAL_DEVICE}"
+fi
+
+mkdir -p "$${MOUNT_POINT}"
+
+# Persist via fstab using the stable by-id path so the mount survives
+# reboots and survives device-letter reshuffles. nofail keeps the
+# droplet bootable even if the volume is missing.
+FSTAB_LINE="$${DEVICE} $${MOUNT_POINT} $${FSTYPE} defaults,nofail,discard 0 2"
+if ! grep -qsF "$${DEVICE}" /etc/fstab; then
+  echo "$${FSTAB_LINE}" >> /etc/fstab
+fi
+
+mount -a
+echo "[flo] mounted $${DEVICE} at $${MOUNT_POINT}"
+%{ endif ~}
+
 # Data directory.
-install -d -o flo -g flo -m 0750 /var/lib/flo
+install -d -o flo -g flo -m 0750 ${data_dir}
 
 # systemd unit.
-cat > /etc/systemd/system/flo.service <<'UNIT'
+cat > /etc/systemd/system/flo.service <<UNIT
 [Unit]
 Description=Flo Server
 Documentation=https://github.com/floruntime/flo
@@ -59,7 +116,7 @@ ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 NoNewPrivileges=true
-ReadWritePaths=/var/lib/flo
+ReadWritePaths=${data_dir}
 
 [Install]
 WantedBy=multi-user.target

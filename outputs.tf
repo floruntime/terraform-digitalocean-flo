@@ -62,3 +62,18 @@ output "firewall_id" {
   description = "Firewall ID (empty when create_firewall = false)."
   value       = var.create_firewall ? digitalocean_firewall.this[0].id : ""
 }
+
+output "volume_id" {
+  description = "DigitalOcean volume ID backing data_dir. Empty when volume_size = 0."
+  value       = local.volume_enabled ? digitalocean_volume.this[0].id : ""
+}
+
+output "volume_name" {
+  description = "DigitalOcean volume name. Empty when volume_size = 0."
+  value       = local.volume_enabled ? digitalocean_volume.this[0].name : ""
+}
+
+output "volume_urn" {
+  description = "DigitalOcean volume URN. Empty when volume_size = 0."
+  value       = local.volume_enabled ? digitalocean_volume.this[0].urn : ""
+}

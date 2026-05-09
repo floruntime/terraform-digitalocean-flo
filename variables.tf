@@ -232,3 +232,37 @@ variable "cluster_seeds" {
   description = "Gossip seed addresses ('host:gossip_port'). Each entry should target another node's listen_port + 600. Required when cluster_enabled = true."
   default     = []
 }
+
+# ---------------------------------------------------------------
+# Persistent storage (optional block-storage volume for data_dir)
+# ---------------------------------------------------------------
+
+variable "volume_size" {
+  type        = number
+  description = "Size in GB of a DigitalOcean block-storage volume to provision and mount at var.data_dir. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement."
+  default     = 0
+  validation {
+    condition     = var.volume_size >= 0 && var.volume_size <= 16384
+    error_message = "volume_size must be between 0 and 16384 GB (DigitalOcean's max volume size)."
+  }
+}
+
+variable "volume_name" {
+  type        = string
+  description = "Name of the DigitalOcean volume. Must be lowercase alphanumeric or hyphen, 1-64 chars. Empty (default) auto-derives from the droplet name. Only used when volume_size > 0."
+  default     = ""
+  validation {
+    condition     = var.volume_name == "" || can(regex("^[a-z0-9][a-z0-9-]{0,63}$", var.volume_name))
+    error_message = "volume_name must be empty or 1-64 lowercase alphanumeric / hyphen chars starting with a letter or digit."
+  }
+}
+
+variable "volume_filesystem_type" {
+  type        = string
+  description = "Filesystem to format a freshly-created volume with. One of 'ext4' or 'xfs'. Existing filesystems on a re-attached volume are detected and never reformatted."
+  default     = "ext4"
+  validation {
+    condition     = contains(["ext4", "xfs"], var.volume_filesystem_type)
+    error_message = "volume_filesystem_type must be one of: ext4, xfs."
+  }
+}

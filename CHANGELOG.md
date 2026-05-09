@@ -10,6 +10,22 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Added
+- Optional persistent block-storage volume for `data_dir`. Set
+  `volume_size > 0` to provision a `digitalocean_volume`, attach it
+  to the droplet at boot, and mount it at `var.data_dir` via
+  cloud-init (formats blank volumes with `var.volume_filesystem_type`,
+  re-attached volumes keep their existing filesystem and data).
+  The volume carries `prevent_destroy = true` so droplet replacement
+  no longer wipes Flo state.
+- New variables: `volume_size`, `volume_name`, `volume_filesystem_type`.
+- New outputs: `volume_id`, `volume_name`, `volume_urn`.
+
+### Changed
+- Cloud-init now derives the systemd unit's `ReadWritePaths` and the
+  `flo` user's home directory from `var.data_dir` (previously
+  hard-coded to `/var/lib/flo`).
+
 ## [0.0.1] - 2026-05-09
 
 ### Added
