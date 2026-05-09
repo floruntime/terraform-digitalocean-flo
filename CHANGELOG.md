@@ -10,6 +10,8 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-05-09
+
 ### Added
 - Optional persistent block-storage volume for `data_dir`. Set
   `volume_size > 0` to provision a `digitalocean_volume`, attach it
@@ -40,5 +42,6 @@ Breaking changes can land on any minor bump (`0.x.0`) until
   emits a `[cluster]` block with `node_id` + `seeds`.
 - Examples: `minimal`, `cluster`.
 
-[Unreleased]: https://github.com/floruntime/terraform-digitalocean-flo/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/floruntime/terraform-digitalocean-flo/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/floruntime/terraform-digitalocean-flo/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/floruntime/terraform-digitalocean-flo/releases/tag/v0.0.1
