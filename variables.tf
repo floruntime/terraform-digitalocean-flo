@@ -237,6 +237,18 @@ variable "cluster_seeds" {
 # Persistent storage (optional block-storage volume for data_dir)
 # ---------------------------------------------------------------
 
+variable "cluster_secret" {
+  type        = string
+  description = "Shared secret every node of the cluster proves at the peer handshake; the Raft port refuses to start without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster_enabled = true."
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition     = !var.cluster_enabled || length(var.cluster_secret) > 0
+    error_message = "cluster_secret is required when cluster_enabled = true."
+  }
+}
+
 variable "volume_size" {
   type        = number
   description = "Size in GB of a DigitalOcean block-storage volume to provision and mount at var.data_dir. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement."

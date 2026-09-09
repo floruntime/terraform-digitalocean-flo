@@ -37,8 +37,9 @@ flo --server "$(terraform output -raw listen_endpoint)" kv set hello world
   into `/etc/flo/`, and runs Flo under a dedicated `flo` systemd
   unit.
 - **Optional cluster mode** — set `cluster_enabled = true` and
-  pass `cluster_node_id` + `cluster_seeds`; the firewall opens the
-  derived raft and gossip ports between `cluster_allowed_cidrs`.
+  pass `cluster_node_id`, `cluster_seeds` and a shared
+  `cluster_secret`; the firewall opens the derived raft and gossip
+  ports between `cluster_allowed_cidrs`.
 - **Project attachment**, **monitoring**, and **backups** toggles
   for production hygiene.
 
@@ -158,6 +159,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the cluster ports (raft = listen\_port + 500, gossip = listen\_port + 600). Only used when cluster\_enabled = true. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
 | <a name="input_cluster_enabled"></a> [cluster\_enabled](#input\_cluster\_enabled) | Join this droplet to a Flo cluster. Requires cluster\_node\_id and cluster\_seeds. | `bool` | `false` | no |
 | <a name="input_cluster_node_id"></a> [cluster\_node\_id](#input\_cluster\_node\_id) | Unique node ID within the cluster (1, 2, 3, ...). Required when cluster\_enabled = true. | `number` | `0` | no |
+| <a name="input_cluster_secret"></a> [cluster\_secret](#input\_cluster\_secret) | Shared secret every node of the cluster proves at the peer handshake; the Raft port refuses to start without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster\_enabled = true. | `string` | `""` | no |
 | <a name="input_cluster_seeds"></a> [cluster\_seeds](#input\_cluster\_seeds) | Gossip seed addresses ('host:gossip\_port'). Each entry should target another node's listen\_port + 600. Required when cluster\_enabled = true. | `list(string)` | `[]` | no |
 | <a name="input_create_firewall"></a> [create\_firewall](#input\_create\_firewall) | Create a DigitalOcean firewall in front of the droplet. Disable if you manage firewalls externally. | `bool` | `true` | no |
 | <a name="input_dashboard_allowed_cidrs"></a> [dashboard\_allowed\_cidrs](#input\_dashboard\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo dashboard / REST API (listen\_port + 2). Restrict in production. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
