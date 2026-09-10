@@ -59,6 +59,7 @@ locals {
     cluster_enabled        = var.cluster_enabled
     cluster_node_id        = var.cluster_node_id
     cluster_seeds          = var.cluster_seeds
+    cluster_secret         = var.cluster_secret
   })
 }
 

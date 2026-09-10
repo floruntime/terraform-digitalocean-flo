@@ -26,5 +26,6 @@ bind = "${dashboard_bind_address}"
 [cluster]
 enabled = true
 node_id = ${cluster_node_id}
+secret = "${cluster_secret}"
 seeds = [${join(", ", [for s in cluster_seeds : "\"${s}\""])}]
 %{ endif ~}

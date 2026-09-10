@@ -233,6 +233,18 @@ variable "cluster_seeds" {
   default     = []
 }
 
+variable "cluster_secret" {
+  type        = string
+  description = "Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster_enabled = true."
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition     = !var.cluster_enabled || length(var.cluster_secret) > 0
+    error_message = "cluster_secret is required when cluster_enabled = true."
+  }
+}
+
 # ---------------------------------------------------------------
 # Persistent storage (optional block-storage volume for data_dir)
 # ---------------------------------------------------------------

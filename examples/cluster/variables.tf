@@ -20,3 +20,9 @@ variable "operator_cidrs" {
   description = "CIDR blocks allowed to reach the dashboard."
   default     = ["0.0.0.0/0", "::/0"]
 }
+
+variable "cluster_secret" {
+  type        = string
+  description = "Shared secret every node proves at the peer handshake. Generate one with `openssl rand -base64 32` and use it for every node."
+  sensitive   = true
+}

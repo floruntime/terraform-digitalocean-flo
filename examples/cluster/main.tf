@@ -57,6 +57,7 @@ module "flo" {
   cluster_enabled = true
   cluster_node_id = tonumber(each.key)
   cluster_seeds   = local.seeds
+  cluster_secret  = var.cluster_secret
 
   # Lock the dashboard down to your operator IP in real deployments.
   dashboard_allowed_cidrs = var.operator_cidrs
