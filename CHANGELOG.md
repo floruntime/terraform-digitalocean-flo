@@ -10,6 +10,25 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Changed
+- **Breaking.** A cluster is started by one member and joined by the
+  rest: `cluster_first_member = true` on exactly one droplet (it takes
+  no seeds), `cluster_seeds` on the others naming that droplet's
+  `peer_endpoint` (`listen_port + 500`). A member list of every node's
+  address on every node no longer starts (Flo refuses `enabled` and
+  `seeds` together).
+- `cluster_seeds` entries are peer endpoints (`listen_port + 500`), not
+  gossip addresses; there is no gossip port any more. The firewall opens
+  only the peer port; `gossip_endpoint` and `gossip_port` outputs are
+  replaced by `peer_endpoint` and `raft_port`.
+- `shards` must be `1` (or `0`) on a cluster member; a cluster
+  replicates one shard for now.
+- `expose_metrics = true` also binds the metrics listener to every
+  interface; before, the firewall opened a port bound to loopback.
+- `durability` takes Flo's values: `sync`, `async_flush`, `ephemeral`
+  (`sync_flush` and `fsync` were never Flo's and were silently read as
+  `async_flush`).
+
 ## [0.0.2] - 2026-05-09
 
 ### Added

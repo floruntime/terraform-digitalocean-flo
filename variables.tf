@@ -115,7 +115,7 @@ variable "expose_metrics" {
 
 variable "cluster_allowed_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to reach the cluster ports (raft = listen_port + 500, gossip = listen_port + 600). Only used when cluster_enabled = true."
+  description = "CIDR blocks allowed to reach the peer port (listen_port + 500). Only used when cluster_enabled = true. Restrict to the cluster's network: the port carries membership and log contents."
   default     = ["0.0.0.0/0", "::/0"]
 }
 
@@ -169,11 +169,11 @@ variable "shards" {
 
 variable "durability" {
   type        = string
-  description = "Storage durability mode. One of 'async_flush', 'sync_flush', 'fsync'."
+  description = "Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async_flush' (flushed within a second), 'ephemeral'."
   default     = "async_flush"
   validation {
-    condition     = contains(["async_flush", "sync_flush", "fsync"], var.durability)
-    error_message = "durability must be one of: async_flush, sync_flush, fsync."
+    condition     = contains(["sync", "async_flush", "ephemeral"], var.durability)
+    error_message = "durability must be one of: sync, async_flush, ephemeral."
   }
 }
 
@@ -213,13 +213,19 @@ variable "dashboard_bind_address" {
 
 variable "cluster_enabled" {
   type        = bool
-  description = "Join this droplet to a Flo cluster. Requires cluster_node_id and cluster_seeds."
+  description = "Make this droplet a cluster member. Requires cluster_secret, and either cluster_first_member = true or cluster_seeds."
+  default     = false
+}
+
+variable "cluster_first_member" {
+  type        = bool
+  description = "This droplet starts the cluster: it leads a group of one until the others join it. Exactly one member of a new cluster sets this; it takes no cluster_seeds."
   default     = false
 }
 
 variable "cluster_node_id" {
   type        = number
-  description = "Unique node ID within the cluster (1, 2, 3, ...). Required when cluster_enabled = true."
+  description = "This node's id within the cluster (1, 2, 3, ...). 0 derives one from hostname and port, which collides on cloned images; set it explicitly on members."
   default     = 0
   validation {
     condition     = var.cluster_node_id >= 0
@@ -229,7 +235,7 @@ variable "cluster_node_id" {
 
 variable "cluster_seeds" {
   type        = list(string)
-  description = "Gossip seed addresses ('host:gossip_port'). Each entry should target another node's listen_port + 600. Required when cluster_enabled = true."
+  description = "Peer endpoints of members to join ('host:port', the member's listen_port + 500 — the module's peer_endpoint output). Required when cluster_enabled = true unless cluster_first_member = true."
   default     = []
 }
 
@@ -238,11 +244,6 @@ variable "cluster_secret" {
   description = "Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster_enabled = true."
   default     = ""
   sensitive   = true
-
-  validation {
-    condition     = !var.cluster_enabled || length(var.cluster_secret) > 0
-    error_message = "cluster_secret is required when cluster_enabled = true."
-  }
 }
 
 # ---------------------------------------------------------------

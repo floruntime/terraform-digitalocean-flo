@@ -43,19 +43,14 @@ output "metrics_endpoint" {
   value       = var.enable_metrics ? "http://${digitalocean_droplet.this.ipv4_address}:${local.metrics_port}/metrics" : ""
 }
 
-output "gossip_endpoint" {
-  description = "host:port other cluster nodes should list in their cluster_seeds. Empty when cluster_enabled = false."
-  value       = var.cluster_enabled ? "${digitalocean_droplet.this.ipv4_address}:${local.gossip_port}" : ""
+output "peer_endpoint" {
+  description = "host:port joining nodes list in their cluster_seeds (the peer port, listen_port + 500). Empty when cluster_enabled = false."
+  value       = var.cluster_enabled ? "${digitalocean_droplet.this.ipv4_address}:${local.raft_port}" : ""
 }
 
 output "raft_port" {
-  description = "TCP port used for Raft replication (listen_port + 500)."
+  description = "The peer port members talk over (listen_port + 500)."
   value       = local.raft_port
-}
-
-output "gossip_port" {
-  description = "TCP/UDP port used for gossip (listen_port + 600)."
-  value       = local.gossip_port
 }
 
 output "firewall_id" {
