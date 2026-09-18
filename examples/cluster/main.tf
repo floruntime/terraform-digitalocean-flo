@@ -17,17 +17,17 @@ data "digitalocean_ssh_key" "main" {
 }
 
 # ----------------------------------------------------------------
-# Three-node Flo cluster.
+# Three-node Flo cluster: node 1 starts it, nodes 2 and 3 join it.
 #
-# We need stable IPs to populate cluster_seeds *before* the droplets
-# exist, so we reserve floating IPs first and pass them in as the
-# gossip seeds. Each node's gossip port is listen_port + 600.
+# The joiners need node 1's address before any droplet exists, so a
+# reserved IP is created first and node 1's peer endpoint (that IP at
+# listen_port + 500) is their seed.
 # ----------------------------------------------------------------
 
 locals {
   node_ids    = [1, 2, 3]
   listen_port = 9000
-  gossip_port = local.listen_port + 600
+  peer_port   = local.listen_port + 500
 }
 
 resource "digitalocean_reserved_ip" "node" {
@@ -36,10 +36,7 @@ resource "digitalocean_reserved_ip" "node" {
 }
 
 locals {
-  seeds = [
-    for id in local.node_ids :
-    "${digitalocean_reserved_ip.node[tostring(id)].ip_address}:${local.gossip_port}"
-  ]
+  first_member_seed = "${digitalocean_reserved_ip.node["1"].ip_address}:${local.peer_port}"
 }
 
 module "flo" {
@@ -53,11 +50,13 @@ module "flo" {
   flo_version  = "v0.1.0"
   droplet_size = "s-4vcpu-8gb"
   listen_port  = local.listen_port
+  shards       = 1
 
-  cluster_enabled = true
-  cluster_node_id = tonumber(each.key)
-  cluster_seeds   = local.seeds
-  cluster_secret  = var.cluster_secret
+  cluster_enabled      = true
+  cluster_node_id      = tonumber(each.key)
+  cluster_first_member = each.key == "1"
+  cluster_seeds        = each.key == "1" ? [] : [local.first_member_seed]
+  cluster_secret       = var.cluster_secret
 
   # Lock the dashboard down to your operator IP in real deployments.
   dashboard_allowed_cidrs = var.operator_cidrs

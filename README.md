@@ -25,7 +25,7 @@ output "dashboard" { value = module.flo.dashboard_url }
 terraform init
 terraform apply
 
-flo --server "$(terraform output -raw listen_endpoint)" kv set hello world
+flo -e "$(terraform output -raw listen_endpoint)" kv set hello world
 ```
 
 ## Features
@@ -36,10 +36,11 @@ flo --server "$(terraform output -raw listen_endpoint)" kv set hello world
   pins to a specific `flo` version, drops a templated `flo.toml`
   into `/etc/flo/`, and runs Flo under a dedicated `flo` systemd
   unit.
-- **Optional cluster mode** — set `cluster_enabled = true` and
-  pass `cluster_node_id`, `cluster_seeds` and a shared
-  `cluster_secret`; the firewall opens the derived raft and gossip
-  ports between `cluster_allowed_cidrs`.
+- **Optional cluster mode** — set `cluster_enabled = true` with a
+  shared `cluster_secret`; one member sets `cluster_first_member`,
+  the rest list its `peer_endpoint` in `cluster_seeds`. The firewall
+  opens the peer port (`listen_port + 500`) between
+  `cluster_allowed_cidrs`.
 - **Project attachment**, **monitoring**, and **backups** toggles
   for production hygiene.
 
@@ -52,21 +53,20 @@ Flo derives all secondary ports from `listen_port` (default `9000`):
 | Wire      | `listen_port`      |
 | Metrics   | `listen_port + 1`  |
 | Dashboard | `listen_port + 2`  |
-| Raft      | `listen_port + 500`|
-| Gossip    | `listen_port + 600`|
+| Peer port | `listen_port + 500`|
 
 ## Examples
 
 | Path | What it shows |
 |---|---|
 | [`examples/minimal`](./examples/minimal) | Single node, public defaults. |
-| [`examples/cluster`](./examples/cluster) | Three-node cluster wired via reserved IPs. |
+| [`examples/cluster`](./examples/cluster) | Three-node cluster: one first member, two joiners, reserved IPs. |
 
 ## After `terraform apply`
 
 ```bash
 # Wire-protocol endpoint for the CLI / SDKs
-flo --server "$(terraform output -raw listen_endpoint)" kv set hello world
+flo -e "$(terraform output -raw listen_endpoint)" kv set hello world
 
 # Dashboard
 open "$(terraform output -raw dashboard_url)"
@@ -156,17 +156,18 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 |------|-------------|------|---------|:--------:|
 | <a name="input_api_allowed_cidrs"></a> [api\_allowed\_cidrs](#input\_api\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo wire-protocol port (var.listen\_port). | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
 | <a name="input_bind_address"></a> [bind\_address](#input\_bind\_address) | Address Flo binds the wire-protocol listener to. | `string` | `"0.0.0.0"` | no |
-| <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the cluster ports (raft = listen\_port + 500, gossip = listen\_port + 600). Only used when cluster\_enabled = true. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
-| <a name="input_cluster_enabled"></a> [cluster\_enabled](#input\_cluster\_enabled) | Join this droplet to a Flo cluster. Requires cluster\_node\_id and cluster\_seeds. | `bool` | `false` | no |
-| <a name="input_cluster_node_id"></a> [cluster\_node\_id](#input\_cluster\_node\_id) | Unique node ID within the cluster (1, 2, 3, ...). Required when cluster\_enabled = true. | `number` | `0` | no |
+| <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the peer port (listen\_port + 500). Only used when cluster\_enabled = true. Restrict to the cluster's network: the port carries membership and log contents. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
+| <a name="input_cluster_enabled"></a> [cluster\_enabled](#input\_cluster\_enabled) | Make this droplet a cluster member. Requires cluster\_secret, and either cluster\_first\_member = true or cluster\_seeds. | `bool` | `false` | no |
+| <a name="input_cluster_first_member"></a> [cluster\_first\_member](#input\_cluster\_first\_member) | This droplet starts the cluster: it leads a group of one until the others join it. Exactly one member of a new cluster sets this; it takes no cluster\_seeds. | `bool` | `false` | no |
+| <a name="input_cluster_node_id"></a> [cluster\_node\_id](#input\_cluster\_node\_id) | This node's id within the cluster (1, 2, 3, ...). 0 derives one from hostname and port, which collides on cloned images; set it explicitly on members. | `number` | `0` | no |
 | <a name="input_cluster_secret"></a> [cluster\_secret](#input\_cluster\_secret) | Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster\_enabled = true. | `string` | `""` | no |
-| <a name="input_cluster_seeds"></a> [cluster\_seeds](#input\_cluster\_seeds) | Gossip seed addresses ('host:gossip\_port'). Each entry should target another node's listen\_port + 600. Required when cluster\_enabled = true. | `list(string)` | `[]` | no |
+| <a name="input_cluster_seeds"></a> [cluster\_seeds](#input\_cluster\_seeds) | Peer endpoints of members to join ('host:port', the member's listen\_port + 500 — the module's peer\_endpoint output). Required when cluster\_enabled = true unless cluster\_first\_member = true. | `list(string)` | `[]` | no |
 | <a name="input_create_firewall"></a> [create\_firewall](#input\_create\_firewall) | Create a DigitalOcean firewall in front of the droplet. Disable if you manage firewalls externally. | `bool` | `true` | no |
 | <a name="input_dashboard_allowed_cidrs"></a> [dashboard\_allowed\_cidrs](#input\_dashboard\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo dashboard / REST API (listen\_port + 2). Restrict in production. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
 | <a name="input_dashboard_bind_address"></a> [dashboard\_bind\_address](#input\_dashboard\_bind\_address) | Address Flo binds the dashboard listener to. | `string` | `"0.0.0.0"` | no |
 | <a name="input_data_dir"></a> [data\_dir](#input\_data\_dir) | Directory Flo stores its data in. Created and chowned by cloud-init. | `string` | `"/var/lib/flo"` | no |
 | <a name="input_droplet_size"></a> [droplet\_size](#input\_droplet\_size) | DigitalOcean droplet size slug. Flo benefits from multiple vCPUs (one shard per CPU). | `string` | `"s-2vcpu-4gb"` | no |
-| <a name="input_durability"></a> [durability](#input\_durability) | Storage durability mode. One of 'async\_flush', 'sync\_flush', 'fsync'. | `string` | `"async_flush"` | no |
+| <a name="input_durability"></a> [durability](#input\_durability) | Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async\_flush' (flushed within a second), 'ephemeral'. | `string` | `"async_flush"` | no |
 | <a name="input_enable_backups"></a> [enable\_backups](#input\_enable\_backups) | Enable weekly droplet backups. | `bool` | `false` | no |
 | <a name="input_enable_dashboard"></a> [enable\_dashboard](#input\_enable\_dashboard) | Enable the dashboard HTTP API + web UI. | `bool` | `true` | no |
 | <a name="input_enable_ipv6"></a> [enable\_ipv6](#input\_enable\_ipv6) | Enable IPv6 on the droplet. | `bool` | `true` | no |
@@ -198,14 +199,13 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="output_droplet_id"></a> [droplet\_id](#output\_droplet\_id) | DigitalOcean droplet ID. |
 | <a name="output_droplet_name"></a> [droplet\_name](#output\_droplet\_name) | Droplet name. |
 | <a name="output_firewall_id"></a> [firewall\_id](#output\_firewall\_id) | Firewall ID (empty when create\_firewall = false). |
-| <a name="output_gossip_endpoint"></a> [gossip\_endpoint](#output\_gossip\_endpoint) | host:port other cluster nodes should list in their cluster\_seeds. Empty when cluster\_enabled = false. |
-| <a name="output_gossip_port"></a> [gossip\_port](#output\_gossip\_port) | TCP/UDP port used for gossip (listen\_port + 600). |
+| <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port joining nodes list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
 | <a name="output_ipv4_address"></a> [ipv4\_address](#output\_ipv4\_address) | Public IPv4 address of the droplet. |
 | <a name="output_ipv4_address_private"></a> [ipv4\_address\_private](#output\_ipv4\_address\_private) | Private IPv4 address (VPC), if assigned. |
 | <a name="output_ipv6_address"></a> [ipv6\_address](#output\_ipv6\_address) | Public IPv6 address of the droplet (empty if disabled). |
 | <a name="output_listen_endpoint"></a> [listen\_endpoint](#output\_listen\_endpoint) | host:port to point Flo clients (and the `flo` CLI) at. |
 | <a name="output_metrics_endpoint"></a> [metrics\_endpoint](#output\_metrics\_endpoint) | Prometheus metrics endpoint. Empty when enable\_metrics = false. |
-| <a name="output_raft_port"></a> [raft\_port](#output\_raft\_port) | TCP port used for Raft replication (listen\_port + 500). |
+| <a name="output_raft_port"></a> [raft\_port](#output\_raft\_port) | The peer port members talk over (listen\_port + 500). |
 | <a name="output_urn"></a> [urn](#output\_urn) | Droplet URN, useful when wiring further DigitalOcean resources. |
 | <a name="output_volume_id"></a> [volume\_id](#output\_volume\_id) | DigitalOcean volume ID backing data\_dir. Empty when volume\_size = 0. |
 | <a name="output_volume_name"></a> [volume\_name](#output\_volume\_name) | DigitalOcean volume name. Empty when volume\_size = 0. |

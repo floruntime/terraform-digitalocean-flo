@@ -15,6 +15,10 @@ level = "${log_level}"
 
 [metrics]
 enabled = ${enable_metrics}
+%{ if expose_metrics ~}
+# Published on the firewall; the bind must not stay on loopback.
+bind = "0.0.0.0"
+%{ endif ~}
 # port auto-derived: listen_port + 1
 
 [dashboard]
@@ -24,8 +28,13 @@ bind = "${dashboard_bind_address}"
 %{ if cluster_enabled ~}
 
 [cluster]
+%{ if cluster_first_member ~}
+# The first member: leads alone until the others join it.
 enabled = true
+%{ else ~}
+# Joins the members below; the leader adds this node to the group.
+seeds = [${join(", ", [for s in cluster_seeds : "\"${s}\""])}]
+%{ endif ~}
 node_id = ${cluster_node_id}
 secret = "${cluster_secret}"
-seeds = [${join(", ", [for s in cluster_seeds : "\"${s}\""])}]
 %{ endif ~}

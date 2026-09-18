@@ -5,10 +5,11 @@
 # Cloud-init installs Flo via the upstream installer script and
 # writes a flo.toml shaped by this module's inputs.
 #
-# Cluster mode (var.cluster_enabled = true) wires this node into a
-# Flo cluster via gossip seeds. To stand up a multi-node cluster,
-# instantiate this module N times with distinct cluster_node_id
-# values and a shared cluster_seeds list.
+# Cluster mode (var.cluster_enabled = true) makes this node a member:
+# the first member (cluster_first_member = true) starts the cluster,
+# the others join it through cluster_seeds (its peer endpoint). To
+# stand up a multi-node cluster, instantiate this module N times with
+# distinct cluster_node_id values and one shared cluster_secret.
 # ---------------------------------------------------------------
 
 locals {
@@ -17,12 +18,10 @@ locals {
   # Derived ports (Flo convention):
   #   metrics   = listen_port + 1
   #   dashboard = listen_port + 2
-  #   raft      = listen_port + 500
-  #   gossip    = listen_port + 600
+  #   peer      = listen_port + 500
   metrics_port   = var.listen_port + 1
   dashboard_port = var.listen_port + 2
   raft_port      = var.listen_port + 500
-  gossip_port    = var.listen_port + 600
 
   # Persistent volume wiring.
   volume_enabled = var.volume_size > 0
@@ -54,9 +53,11 @@ locals {
     hot_buffer_capacity    = var.hot_buffer_capacity
     log_level              = var.log_level
     enable_metrics         = var.enable_metrics
+    expose_metrics         = var.expose_metrics
     enable_dashboard       = var.enable_dashboard
     dashboard_bind_address = var.dashboard_bind_address
     cluster_enabled        = var.cluster_enabled
+    cluster_first_member   = var.cluster_first_member
     cluster_node_id        = var.cluster_node_id
     cluster_seeds          = var.cluster_seeds
     cluster_secret         = var.cluster_secret
@@ -81,6 +82,27 @@ resource "digitalocean_volume" "this" {
 }
 
 resource "digitalocean_droplet" "this" {
+  # What a cluster member needs, checked together: these rules span
+  # several inputs, which a variable's own validation cannot see.
+  lifecycle {
+    precondition {
+      condition     = !var.cluster_enabled || length(var.cluster_secret) > 0
+      error_message = "cluster_secret is required when cluster_enabled = true."
+    }
+    precondition {
+      condition     = !var.cluster_enabled || var.cluster_first_member || length(var.cluster_seeds) > 0
+      error_message = "A cluster member either starts the cluster (cluster_first_member = true) or joins it (cluster_seeds); with cluster_enabled = true set one of them."
+    }
+    precondition {
+      condition     = !var.cluster_first_member || length(var.cluster_seeds) == 0
+      error_message = "cluster_first_member starts the cluster and takes no cluster_seeds; joining members list the first member's peer_endpoint instead."
+    }
+    precondition {
+      condition     = !var.cluster_enabled || var.shards <= 1
+      error_message = "A cluster replicates one shard for now; set shards = 1 (or 0, which resolves to 1) on every member."
+    }
+  }
+
   name     = local.name
   image    = var.image
   region   = var.region
@@ -141,20 +163,11 @@ resource "digitalocean_firewall" "this" {
     }
   }
 
-  # Cluster traffic (raft + gossip) — restricted to the cluster CIDRs.
+  # Peer traffic between members — restricted to the cluster CIDRs.
   dynamic "inbound_rule" {
-    for_each = var.cluster_enabled ? [local.raft_port, local.gossip_port] : []
+    for_each = var.cluster_enabled ? [local.raft_port] : []
     content {
       protocol         = "tcp"
-      port_range       = tostring(inbound_rule.value)
-      source_addresses = var.cluster_allowed_cidrs
-    }
-  }
-
-  dynamic "inbound_rule" {
-    for_each = var.cluster_enabled ? [local.gossip_port] : []
-    content {
-      protocol         = "udp"
       port_range       = tostring(inbound_rule.value)
       source_addresses = var.cluster_allowed_cidrs
     }
