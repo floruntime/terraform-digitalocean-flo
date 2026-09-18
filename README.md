@@ -199,12 +199,12 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="output_droplet_id"></a> [droplet\_id](#output\_droplet\_id) | DigitalOcean droplet ID. |
 | <a name="output_droplet_name"></a> [droplet\_name](#output\_droplet\_name) | Droplet name. |
 | <a name="output_firewall_id"></a> [firewall\_id](#output\_firewall\_id) | Firewall ID (empty when create\_firewall = false). |
-| <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port joining nodes list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
 | <a name="output_ipv4_address"></a> [ipv4\_address](#output\_ipv4\_address) | Public IPv4 address of the droplet. |
 | <a name="output_ipv4_address_private"></a> [ipv4\_address\_private](#output\_ipv4\_address\_private) | Private IPv4 address (VPC), if assigned. |
 | <a name="output_ipv6_address"></a> [ipv6\_address](#output\_ipv6\_address) | Public IPv6 address of the droplet (empty if disabled). |
 | <a name="output_listen_endpoint"></a> [listen\_endpoint](#output\_listen\_endpoint) | host:port to point Flo clients (and the `flo` CLI) at. |
 | <a name="output_metrics_endpoint"></a> [metrics\_endpoint](#output\_metrics\_endpoint) | Prometheus metrics endpoint. Empty when enable\_metrics = false. |
+| <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port joining nodes list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
 | <a name="output_raft_port"></a> [raft\_port](#output\_raft\_port) | The peer port members talk over (listen\_port + 500). |
 | <a name="output_urn"></a> [urn](#output\_urn) | Droplet URN, useful when wiring further DigitalOcean resources. |
 | <a name="output_volume_id"></a> [volume\_id](#output\_volume\_id) | DigitalOcean volume ID backing data\_dir. Empty when volume\_size = 0. |
