@@ -241,9 +241,14 @@ variable "cluster_seeds" {
 
 variable "cluster_secret" {
   type        = string
-  description = "Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Use the same value on every node (e.g. `openssl rand -base64 32`). Required when cluster_enabled = true."
+  description = "Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Make it once with `flo server secret` (Flo accepts no other form) and use the same value on every node. Required when cluster_enabled = true."
   default     = ""
   sensitive   = true
+
+  validation {
+    condition     = var.cluster_secret == "" || can(regex("^flo-secret-[0-9a-f]{64}$", var.cluster_secret))
+    error_message = "cluster_secret must be what `flo server secret` prints (flo-secret- then 64 lowercase hex characters); Flo refuses any other form."
+  }
 }
 
 # ---------------------------------------------------------------
