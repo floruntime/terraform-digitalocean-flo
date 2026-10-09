@@ -23,6 +23,6 @@ variable "operator_cidrs" {
 
 variable "cluster_secret" {
   type        = string
-  description = "Shared secret every node proves at the peer handshake. Generate one with `openssl rand -base64 32` and use it for every node."
+  description = "Shared secret every node proves at the peer handshake. Make one with `flo server secret` and use it for every node."
   sensitive   = true
 }
