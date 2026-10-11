@@ -12,13 +12,14 @@ if ! command -v curl >/dev/null 2>&1; then
   apt-get install -y -qq curl ca-certificates
 fi
 
-# Install flo via the upstream installer. Pinned via flo_version so
-# this is reproducible across applies (empty == latest).
+# Install flo via the upstream installer. A pinned flo_version takes the
+# installer from that release's tag, so the whole install is reproducible;
+# empty takes the newest release with dev's installer.
 %{ if flo_version != "" ~}
-curl -fsSL https://raw.githubusercontent.com/floruntime/flo/master/scripts/install.sh \
+curl -fsSL https://raw.githubusercontent.com/floruntime/flo/${flo_version}/scripts/install.sh \
   | sh -s -- --version "${flo_version}" --dir /usr/local/bin
 %{ else ~}
-curl -fsSL https://raw.githubusercontent.com/floruntime/flo/master/scripts/install.sh \
+curl -fsSL https://raw.githubusercontent.com/floruntime/flo/dev/scripts/install.sh \
   | sh -s -- --dir /usr/local/bin
 %{ endif ~}
 

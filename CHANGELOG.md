@@ -10,6 +10,12 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Fixed
+- Droplets install flo again. The installer came from flo's stale `master`
+  branch, whose checksum step always failed, so no droplet got a binary. A
+  pinned `flo_version` now takes the installer from that release's tag;
+  empty takes dev's, which resolves the newest release, prereleases included.
+
 ### Changed
 - **Breaking.** The firewall opens only SSH by default. `api_allowed_cidrs`
   now defaults to `[]`: name the ranges your clients connect from to open

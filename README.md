@@ -14,7 +14,7 @@ module "flo" {
   version = "~> 0.0.1"
 
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
-  flo_version = "v0.1.0" # pin in production
+  flo_version = "v0.1.0-dev.11" # pin in production
 
   # The firewall opens only SSH unless you name who may connect.
   api_allowed_cidrs = ["203.0.113.0/24"]
@@ -186,7 +186,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment label used in the droplet name and tags (e.g. 'dev', 'prod'). | `string` | `"dev"` | no |
 | <a name="input_expose_metrics"></a> [expose\_metrics](#input\_expose\_metrics) | Open the metrics port (listen\_port + 1) on the firewall. Off by default; scrape via private network or DO monitoring instead. | `bool` | `false` | no |
 | <a name="input_extra_inbound_tcp_ports"></a> [extra\_inbound\_tcp\_ports](#input\_extra\_inbound\_tcp\_ports) | Additional TCP ports to open inbound (gated by api\_allowed\_cidrs). | `list(number)` | `[]` | no |
-| <a name="input_flo_version"></a> [flo\_version](#input\_flo\_version) | Flo release tag passed to install.sh (e.g. 'v0.1.0'). Empty means 'latest' — pin in production for reproducibility. | `string` | `""` | no |
+| <a name="input_flo_version"></a> [flo\_version](#input\_flo\_version) | Flo release tag to install (e.g. 'v0.1.0-dev.11'); the installer comes from that tag too. Empty means the newest release, prereleases included, with the installer from flo's dev branch. Pin in production for reproducibility. | `string` | `""` | no |
 | <a name="input_hot_buffer_capacity"></a> [hot\_buffer\_capacity](#input\_hot\_buffer\_capacity) | Size of the in-memory hot ring buffer in bytes. 0 uses the Flo default. | `number` | `0` | no |
 | <a name="input_image"></a> [image](#input\_image) | Base image slug. Tested on Ubuntu 24.04 LTS; older Debian/Ubuntu releases may work but are unsupported. | `string` | `"ubuntu-24-04-x64"` | no |
 | <a name="input_listen_port"></a> [listen\_port](#input\_listen\_port) | Port for the Flo wire protocol. Metrics auto-binds to listen\_port + 1, dashboard to listen\_port + 2. | `number` | `9000` | no |

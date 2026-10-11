@@ -131,7 +131,7 @@ variable "extra_inbound_tcp_ports" {
 
 variable "flo_version" {
   type        = string
-  description = "Flo release tag passed to install.sh (e.g. 'v0.1.0'). Empty means 'latest' — pin in production for reproducibility."
+  description = "Flo release tag to install (e.g. 'v0.1.0-dev.11'); the installer comes from that tag too. Empty means the newest release, prereleases included, with the installer from flo's dev branch. Pin in production for reproducibility."
   default     = ""
 }
 
