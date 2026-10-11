@@ -11,6 +11,10 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 ## [Unreleased]
 
 ### Changed
+- A crash-looping server no longer restarts forever: the systemd unit backs
+  off from 5 s to 2 min between attempts and stops after 10 failed starts
+  within an hour, leaving `flo` failed. Restore it with
+  `systemctl reset-failed flo && systemctl start flo` once the cause is fixed.
 - **Breaking.** A cluster is started by one member and joined by the
   rest: `cluster_first_member = true` on exactly one droplet (it takes
   no seeds), `cluster_seeds` on the others naming that droplet's
