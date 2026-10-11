@@ -177,7 +177,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_dashboard_bind_address"></a> [dashboard\_bind\_address](#input\_dashboard\_bind\_address) | Address Flo binds the dashboard listener to. On loopback it is reached through an SSH tunnel (see the dashboard\_ssh\_tunnel output). | `string` | `"127.0.0.1"` | no |
 | <a name="input_data_dir"></a> [data\_dir](#input\_data\_dir) | Directory Flo stores its data in. Created and chowned by cloud-init. | `string` | `"/var/lib/flo"` | no |
 | <a name="input_droplet_size"></a> [droplet\_size](#input\_droplet\_size) | DigitalOcean droplet size slug. Flo benefits from multiple vCPUs (one shard per CPU). | `string` | `"s-2vcpu-4gb"` | no |
-| <a name="input_durability"></a> [durability](#input\_durability) | Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async\_flush' (flushed within a second), 'ephemeral'. | `string` | `"async_flush"` | no |
+| <a name="input_durability"></a> [durability](#input\_durability) | Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async\_flush' (flushed within a second). | `string` | `"async_flush"` | no |
 | <a name="input_enable_backups"></a> [enable\_backups](#input\_enable\_backups) | Enable weekly droplet backups. | `bool` | `false` | no |
 | <a name="input_enable_dashboard"></a> [enable\_dashboard](#input\_enable\_dashboard) | Enable the dashboard HTTP API + web UI. | `bool` | `true` | no |
 | <a name="input_enable_ipv6"></a> [enable\_ipv6](#input\_enable\_ipv6) | Enable IPv6 on the droplet. | `bool` | `true` | no |

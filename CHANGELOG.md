@@ -10,6 +10,10 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Removed
+- **Breaking.** `durability = "ephemeral"`: Flo now refuses it at startup,
+  since nothing ever read it. Use `async_flush` or `sync`.
+
 ### Fixed
 - Droplets install flo again. The installer came from flo's stale `master`
   branch, whose checksum step always failed, so no droplet got a binary. A
@@ -43,7 +47,7 @@ Breaking changes can land on any minor bump (`0.x.0`) until
   replicates one shard for now.
 - `expose_metrics = true` also binds the metrics listener to every
   interface; before, the firewall opened a port bound to loopback.
-- `durability` takes Flo's values: `sync`, `async_flush`, `ephemeral`
+- `durability` takes Flo's values: `sync`, `async_flush`
   (`sync_flush` and `fsync` were never Flo's and were silently read as
   `async_flush`).
 
