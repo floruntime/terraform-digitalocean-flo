@@ -28,4 +28,5 @@ module "flo" {
 
 output "ipv4_address" { value = module.flo.ipv4_address }
 output "listen_endpoint" { value = module.flo.listen_endpoint }
+output "dashboard_ssh_tunnel" { value = module.flo.dashboard_ssh_tunnel }
 output "dashboard_url" { value = module.flo.dashboard_url }

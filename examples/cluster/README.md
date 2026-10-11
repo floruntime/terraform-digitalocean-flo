@@ -2,11 +2,13 @@
 
 Provisions three droplets in the same region. Node 1 starts the cluster
 and leads alone until nodes 2 and 3 join it at its peer port; a reserved
-IP per node keeps that address stable from the first apply.
+IP per node keeps that address stable from the first apply. The wire port
+and the dashboard open only to `operator_cidrs`.
 
 ```bash
 export TF_VAR_do_token=...
 export TF_VAR_ssh_key_name=my-key
+export TF_VAR_operator_cidrs='["203.0.113.0/24"]'  # where your clients connect from
 terraform init
 terraform apply
 terraform output endpoints

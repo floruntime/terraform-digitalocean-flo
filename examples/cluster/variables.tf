@@ -17,8 +17,7 @@ variable "region" {
 
 variable "operator_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to reach the dashboard."
-  default     = ["0.0.0.0/0", "::/0"]
+  description = "CIDR blocks allowed to reach the wire port and the dashboard, e.g. your office or VPN range."
 }
 
 variable "cluster_secret" {

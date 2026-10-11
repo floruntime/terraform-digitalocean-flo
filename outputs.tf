@@ -34,8 +34,17 @@ output "listen_endpoint" {
 }
 
 output "dashboard_url" {
-  description = "Dashboard / REST API URL. Empty when enable_dashboard = false."
-  value       = var.enable_dashboard ? "http://${digitalocean_droplet.this.ipv4_address}:${local.dashboard_port}" : ""
+  description = "Dashboard / REST API URL. While the dashboard is bound to loopback this is the local end of the SSH tunnel (run dashboard_ssh_tunnel first). Empty when enable_dashboard = false."
+  value = !var.enable_dashboard ? "" : (
+    local.dashboard_on_loopback
+    ? "http://127.0.0.1:${local.dashboard_port}"
+    : "http://${digitalocean_droplet.this.ipv4_address}:${local.dashboard_port}"
+  )
+}
+
+output "dashboard_ssh_tunnel" {
+  description = "SSH command that forwards the loopback-bound dashboard to the same port on your machine. Empty when the dashboard is disabled or not on loopback."
+  value       = var.enable_dashboard && local.dashboard_on_loopback ? "ssh -N -L ${local.dashboard_port}:127.0.0.1:${local.dashboard_port} root@${digitalocean_droplet.this.ipv4_address}" : ""
 }
 
 output "metrics_endpoint" {
