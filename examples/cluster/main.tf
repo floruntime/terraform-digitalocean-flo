@@ -58,7 +58,10 @@ module "flo" {
   cluster_seeds        = each.key == "1" ? [] : [local.first_member_seed]
   cluster_secret       = var.cluster_secret
 
-  # Lock the dashboard down to your operator IP in real deployments.
+  # Clients and the dashboard are reachable only from the operator CIDRs.
+  # The dashboard has no authentication yet, so keep that range narrow.
+  api_allowed_cidrs       = var.operator_cidrs
+  dashboard_bind_address  = "0.0.0.0"
   dashboard_allowed_cidrs = var.operator_cidrs
 }
 

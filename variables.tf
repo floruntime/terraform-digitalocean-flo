@@ -91,14 +91,14 @@ variable "ssh_allowed_cidrs" {
 
 variable "api_allowed_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to reach the Flo wire-protocol port (var.listen_port)."
-  default     = ["0.0.0.0/0", "::/0"]
+  description = "CIDR blocks allowed to reach the Flo wire-protocol port (var.listen_port) and extra_inbound_tcp_ports. Empty opens nothing: clients reach the node over SSH or the private network until you name them."
+  default     = []
 }
 
 variable "dashboard_allowed_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to reach the Flo dashboard / REST API (listen_port + 2). Restrict in production."
-  default     = ["0.0.0.0/0", "::/0"]
+  description = "CIDR blocks allowed to reach the Flo dashboard / REST API (listen_port + 2). Empty opens nothing. The dashboard has no authentication yet; naming CIDRs also needs dashboard_bind_address = \"0.0.0.0\"."
+  default     = []
 }
 
 variable "metrics_allowed_cidrs" {
@@ -203,8 +203,8 @@ variable "enable_dashboard" {
 
 variable "dashboard_bind_address" {
   type        = string
-  description = "Address Flo binds the dashboard listener to."
-  default     = "0.0.0.0"
+  description = "Address Flo binds the dashboard listener to. On loopback it is reached through an SSH tunnel (see the dashboard_ssh_tunnel output)."
+  default     = "127.0.0.1"
 }
 
 # ---------------------------------------------------------------

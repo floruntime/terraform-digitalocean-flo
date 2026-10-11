@@ -15,10 +15,13 @@ module "flo" {
 
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
   flo_version = "v0.1.0" # pin in production
+
+  # The firewall opens only SSH unless you name who may connect.
+  api_allowed_cidrs = ["203.0.113.0/24"]
 }
 
-output "endpoint"  { value = module.flo.listen_endpoint }
-output "dashboard" { value = module.flo.dashboard_url }
+output "endpoint"         { value = module.flo.listen_endpoint }
+output "dashboard_tunnel" { value = module.flo.dashboard_ssh_tunnel }
 ```
 
 ```bash
@@ -59,7 +62,7 @@ Flo derives all secondary ports from `listen_port` (default `9000`):
 
 | Path | What it shows |
 |---|---|
-| [`examples/minimal`](./examples/minimal) | Single node, public defaults. |
+| [`examples/minimal`](./examples/minimal) | Single node, module defaults: SSH only. |
 | [`examples/cluster`](./examples/cluster) | Three-node cluster: one first member, two joiners, reserved IPs. |
 
 ## After `terraform apply`
@@ -68,7 +71,8 @@ Flo derives all secondary ports from `listen_port` (default `9000`):
 # Wire-protocol endpoint for the CLI / SDKs
 flo -e "$(terraform output -raw listen_endpoint)" kv set hello world
 
-# Dashboard
+# Dashboard: forward it over SSH, then open the URL
+$(terraform output -raw dashboard_ssh_tunnel) &
 open "$(terraform output -raw dashboard_url)"
 
 # Tail the install log
@@ -97,9 +101,15 @@ then `systemctl restart flo`.
   `journalctl -u flo -f`.
 - Data lives under `var.data_dir` (default `/var/lib/flo`),
   owned by `flo:flo`, mode `0750`.
-- The dashboard listens on `listen_port + 2` and is gated by
-  `var.dashboard_allowed_cidrs`. Tighten this in production —
-  the dashboard exposes administrative APIs.
+- The firewall opens only SSH by default. Name the ranges your
+  clients connect from in `api_allowed_cidrs` to open the wire port.
+- The dashboard listens on `listen_port + 2`, bound to `127.0.0.1`,
+  and has no authentication yet. Reach it through an SSH tunnel:
+  `ssh -N -L 9002:127.0.0.1:9002 root@<droplet>` (the
+  `dashboard_ssh_tunnel` output prints this), then open
+  `http://127.0.0.1:9002`. To open it on the network instead, set
+  `dashboard_bind_address = "0.0.0.0"` and name the ranges in
+  `dashboard_allowed_cidrs`; keep them narrow.
 - The metrics port is **not** opened on the firewall by default.
   Set `expose_metrics = true` (and tighten `metrics_allowed_cidrs`)
   to scrape it from outside the droplet.
@@ -154,7 +164,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_api_allowed_cidrs"></a> [api\_allowed\_cidrs](#input\_api\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo wire-protocol port (var.listen\_port). | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
+| <a name="input_api_allowed_cidrs"></a> [api\_allowed\_cidrs](#input\_api\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo wire-protocol port (var.listen\_port) and extra\_inbound\_tcp\_ports. Empty opens nothing: clients reach the node over SSH or the private network until you name them. | `list(string)` | `[]` | no |
 | <a name="input_bind_address"></a> [bind\_address](#input\_bind\_address) | Address Flo binds the wire-protocol listener to. | `string` | `"0.0.0.0"` | no |
 | <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the peer port (listen\_port + 500). Only used when cluster\_enabled = true. Restrict to the cluster's network: the port carries membership and log contents. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
 | <a name="input_cluster_enabled"></a> [cluster\_enabled](#input\_cluster\_enabled) | Make this droplet a cluster member. Requires cluster\_secret, and either cluster\_first\_member = true or cluster\_seeds. | `bool` | `false` | no |
@@ -163,8 +173,8 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_cluster_secret"></a> [cluster\_secret](#input\_cluster\_secret) | Shared secret every node of the cluster proves at the peer handshake; a node refuses to start its Raft listener without one. Make it once with `flo server secret` (Flo accepts no other form) and use the same value on every node. Required when cluster\_enabled = true. | `string` | `""` | no |
 | <a name="input_cluster_seeds"></a> [cluster\_seeds](#input\_cluster\_seeds) | Peer endpoints of members to join ('host:port', the member's listen\_port + 500 — the module's peer\_endpoint output). Required when cluster\_enabled = true unless cluster\_first\_member = true. | `list(string)` | `[]` | no |
 | <a name="input_create_firewall"></a> [create\_firewall](#input\_create\_firewall) | Create a DigitalOcean firewall in front of the droplet. Disable if you manage firewalls externally. | `bool` | `true` | no |
-| <a name="input_dashboard_allowed_cidrs"></a> [dashboard\_allowed\_cidrs](#input\_dashboard\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo dashboard / REST API (listen\_port + 2). Restrict in production. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
-| <a name="input_dashboard_bind_address"></a> [dashboard\_bind\_address](#input\_dashboard\_bind\_address) | Address Flo binds the dashboard listener to. | `string` | `"0.0.0.0"` | no |
+| <a name="input_dashboard_allowed_cidrs"></a> [dashboard\_allowed\_cidrs](#input\_dashboard\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo dashboard / REST API (listen\_port + 2). Empty opens nothing. The dashboard has no authentication yet; naming CIDRs also needs dashboard\_bind\_address = "0.0.0.0". | `list(string)` | `[]` | no |
+| <a name="input_dashboard_bind_address"></a> [dashboard\_bind\_address](#input\_dashboard\_bind\_address) | Address Flo binds the dashboard listener to. On loopback it is reached through an SSH tunnel (see the dashboard\_ssh\_tunnel output). | `string` | `"127.0.0.1"` | no |
 | <a name="input_data_dir"></a> [data\_dir](#input\_data\_dir) | Directory Flo stores its data in. Created and chowned by cloud-init. | `string` | `"/var/lib/flo"` | no |
 | <a name="input_droplet_size"></a> [droplet\_size](#input\_droplet\_size) | DigitalOcean droplet size slug. Flo benefits from multiple vCPUs (one shard per CPU). | `string` | `"s-2vcpu-4gb"` | no |
 | <a name="input_durability"></a> [durability](#input\_durability) | Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async\_flush' (flushed within a second), 'ephemeral'. | `string` | `"async_flush"` | no |
@@ -195,7 +205,8 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 
 | Name | Description |
 |------|-------------|
-| <a name="output_dashboard_url"></a> [dashboard\_url](#output\_dashboard\_url) | Dashboard / REST API URL. Empty when enable\_dashboard = false. |
+| <a name="output_dashboard_ssh_tunnel"></a> [dashboard\_ssh\_tunnel](#output\_dashboard\_ssh\_tunnel) | SSH command that forwards the loopback-bound dashboard to the same port on your machine. Empty when the dashboard is disabled or not on loopback. |
+| <a name="output_dashboard_url"></a> [dashboard\_url](#output\_dashboard\_url) | Dashboard / REST API URL. While the dashboard is bound to loopback this is the local end of the SSH tunnel (run dashboard\_ssh\_tunnel first). Empty when enable\_dashboard = false. |
 | <a name="output_droplet_id"></a> [droplet\_id](#output\_droplet\_id) | DigitalOcean droplet ID. |
 | <a name="output_droplet_name"></a> [droplet\_name](#output\_droplet\_name) | Droplet name. |
 | <a name="output_firewall_id"></a> [firewall\_id](#output\_firewall\_id) | Firewall ID (empty when create\_firewall = false). |

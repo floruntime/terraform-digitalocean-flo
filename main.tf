@@ -23,6 +23,8 @@ locals {
   dashboard_port = var.listen_port + 2
   raft_port      = var.listen_port + 500
 
+  dashboard_on_loopback = startswith(var.dashboard_bind_address, "127.") || contains(["::1", "localhost"], var.dashboard_bind_address)
+
   # Persistent volume wiring.
   volume_enabled = var.volume_size > 0
   volume_name    = var.volume_name != "" ? var.volume_name : "${local.name}-data"
@@ -136,16 +138,21 @@ resource "digitalocean_firewall" "this" {
     source_addresses = var.ssh_allowed_cidrs
   }
 
-  # Flo wire protocol (clients + RESP)
-  inbound_rule {
-    protocol         = "tcp"
-    port_range       = tostring(var.listen_port)
-    source_addresses = var.api_allowed_cidrs
+  # A rule needs at least one source, so an empty CIDR list means no rule.
+
+  # Flo wire protocol
+  dynamic "inbound_rule" {
+    for_each = length(var.api_allowed_cidrs) > 0 ? [var.listen_port] : []
+    content {
+      protocol         = "tcp"
+      port_range       = tostring(inbound_rule.value)
+      source_addresses = var.api_allowed_cidrs
+    }
   }
 
   # Dashboard HTTP API + web UI
   dynamic "inbound_rule" {
-    for_each = var.enable_dashboard ? [local.dashboard_port] : []
+    for_each = var.enable_dashboard && length(var.dashboard_allowed_cidrs) > 0 ? [local.dashboard_port] : []
     content {
       protocol         = "tcp"
       port_range       = tostring(inbound_rule.value)
@@ -155,7 +162,7 @@ resource "digitalocean_firewall" "this" {
 
   # Prometheus metrics endpoint (only opened when explicitly enabled)
   dynamic "inbound_rule" {
-    for_each = var.enable_metrics && var.expose_metrics ? [local.metrics_port] : []
+    for_each = var.enable_metrics && var.expose_metrics && length(var.metrics_allowed_cidrs) > 0 ? [local.metrics_port] : []
     content {
       protocol         = "tcp"
       port_range       = tostring(inbound_rule.value)
@@ -175,7 +182,7 @@ resource "digitalocean_firewall" "this" {
 
   # Extra ports the operator wants reachable.
   dynamic "inbound_rule" {
-    for_each = var.extra_inbound_tcp_ports
+    for_each = length(var.api_allowed_cidrs) > 0 ? var.extra_inbound_tcp_ports : []
     content {
       protocol         = "tcp"
       port_range       = tostring(inbound_rule.value)

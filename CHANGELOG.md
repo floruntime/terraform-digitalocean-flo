@@ -11,6 +11,14 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 ## [Unreleased]
 
 ### Changed
+- **Breaking.** The firewall opens only SSH by default. `api_allowed_cidrs`
+  now defaults to `[]`: name the ranges your clients connect from to open
+  the wire port (and `extra_inbound_tcp_ports`).
+- **Breaking.** The dashboard binds to `127.0.0.1` by default and
+  `dashboard_allowed_cidrs` defaults to `[]`; it has no authentication yet.
+  Reach it with the new `dashboard_ssh_tunnel` output, after which
+  `dashboard_url` (now the tunnel's local end) opens it. To serve it on the
+  network, set `dashboard_bind_address = "0.0.0.0"` and name the ranges.
 - A crash-looping server no longer restarts forever: the systemd unit backs
   off from 5 s to 2 min between attempts and stops after 10 failed starts
   within an hour, leaving `flo` failed. Restore it with
