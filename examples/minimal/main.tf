@@ -23,7 +23,7 @@ module "flo" {
   region      = "lon1"
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
 
-  flo_version = "v0.1.0"
+  flo_version = "v0.1.0-dev.11"
 }
 
 output "ipv4_address" { value = module.flo.ipv4_address }
