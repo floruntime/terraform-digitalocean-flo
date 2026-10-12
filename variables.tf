@@ -169,11 +169,11 @@ variable "shards" {
 
 variable "durability" {
   type        = string
-  description = "Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async_flush' (flushed within a second), 'ephemeral'."
+  description = "Storage durability mode. One of 'sync' (on disk before a write is acknowledged), 'async_flush' (flushed within a second)."
   default     = "async_flush"
   validation {
-    condition     = contains(["sync", "async_flush", "ephemeral"], var.durability)
-    error_message = "durability must be one of: sync, async_flush, ephemeral."
+    condition     = contains(["sync", "async_flush"], var.durability)
+    error_message = "durability must be sync or async_flush."
   }
 }
 
