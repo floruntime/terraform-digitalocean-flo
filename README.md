@@ -220,7 +220,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_tags"></a> [tags](#input\_tags) | Extra droplet tags. The module always adds 'flo' and 'flo-<environment>'. | `list(string)` | `[]` | no |
 | <a name="input_volume_filesystem_type"></a> [volume\_filesystem\_type](#input\_volume\_filesystem\_type) | Filesystem to format a freshly-created volume with. One of 'ext4' or 'xfs'. Existing filesystems on a re-attached volume are detected and never reformatted. | `string` | `"ext4"` | no |
 | <a name="input_volume_name"></a> [volume\_name](#input\_volume\_name) | Name of the DigitalOcean volume. Must be lowercase alphanumeric or hyphen, 1-64 chars. Empty (default) auto-derives from the droplet name. Only used when volume\_size > 0. | `string` | `""` | no |
-| <a name="input_volume_size"></a> [volume\_size](#input\_volume\_size) | Size in GB of a DigitalOcean block-storage volume to provision and mount at var.data\_dir. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement. | `number` | `0` | no |
+| <a name="input_volume_size"></a> [volume\_size](#input\_volume\_size) | Size in GB of a DigitalOcean block-storage volume to provision and mount at /var/lib/flo, where Flo keeps its data. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement. | `number` | `0` | no |
 ## Outputs
 
 | Name | Description |
@@ -238,7 +238,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port joining nodes list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
 | <a name="output_raft_port"></a> [raft\_port](#output\_raft\_port) | The peer port members talk over (listen\_port + 500). |
 | <a name="output_urn"></a> [urn](#output\_urn) | Droplet URN, useful when wiring further DigitalOcean resources. |
-| <a name="output_volume_id"></a> [volume\_id](#output\_volume\_id) | DigitalOcean volume ID backing data\_dir. Empty when volume\_size = 0. |
+| <a name="output_volume_id"></a> [volume\_id](#output\_volume\_id) | DigitalOcean volume ID mounted at /var/lib/flo. Empty when volume\_size = 0. |
 | <a name="output_volume_name"></a> [volume\_name](#output\_volume\_name) | DigitalOcean volume name. Empty when volume\_size = 0. |
 | <a name="output_volume_urn"></a> [volume\_urn](#output\_volume\_urn) | DigitalOcean volume URN. Empty when volume\_size = 0. |
 <!-- END_TF_DOCS -->
