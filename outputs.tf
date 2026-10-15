@@ -68,7 +68,7 @@ output "firewall_id" {
 }
 
 output "volume_id" {
-  description = "DigitalOcean volume ID backing data_dir. Empty when volume_size = 0."
+  description = "DigitalOcean volume ID mounted at /var/lib/flo. Empty when volume_size = 0."
   value       = local.volume_enabled ? digitalocean_volume.this[0].id : ""
 }
 

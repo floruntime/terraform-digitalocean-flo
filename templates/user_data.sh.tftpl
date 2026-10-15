@@ -7,45 +7,38 @@ exec > >(tee -a /var/log/user-data.log) 2>&1
 
 echo "[flo] cloud-init starting at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-if ! command -v curl >/dev/null 2>&1; then
-  apt-get update -y -qq
-  apt-get install -y -qq curl ca-certificates
-fi
+apt-get update -y -qq
+apt-get install -y -qq curl ca-certificates python3
 
-# Install flo via the upstream installer. A pinned flo_version takes the
-# installer from that release's tag, so the whole install is reproducible;
-# empty takes the newest release with dev's installer.
+# Install flo from the release's .deb: the package carries the binary, the
+# flo user, /var/lib/flo and the systemd unit, so upgrades are package
+# upgrades. A pinned flo_version installs that release; empty, the newest
+# one, prereleases included.
 %{ if flo_version != "" ~}
-curl -fsSL https://raw.githubusercontent.com/floruntime/flo/${flo_version}/scripts/install.sh \
-  | sh -s -- --version "${flo_version}" --dir /usr/local/bin
+FLO_TAG="${flo_version}"
 %{ else ~}
-curl -fsSL https://raw.githubusercontent.com/floruntime/flo/dev/scripts/install.sh \
-  | sh -s -- --dir /usr/local/bin
+FLO_TAG="$(curl -fsSL --retry 5 --retry-connrefused 'https://api.github.com/repos/floruntime/flo/releases?per_page=1' \
+  | python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["tag_name"])')"
 %{ endif ~}
-
-# Dedicated system user for the flo daemon.
-if ! id -u flo >/dev/null 2>&1; then
-  useradd --system --home-dir ${data_dir} --shell /usr/sbin/nologin flo
-fi
-
-# Drop the rendered config.
-mkdir -p /etc/flo
-cat > /etc/flo/flo.toml <<'FLOTOML'
-${flotoml}
-FLOTOML
-chown -R flo:flo /etc/flo
-chmod 640 /etc/flo/flo.toml
+DEB="flo_$${FLO_TAG#v}_$(dpkg --print-architecture).deb"
+WORK="$(mktemp -d)"
+curl -fsSL --retry 5 --retry-connrefused -o "$${WORK}/$${DEB}" "https://github.com/floruntime/flo/releases/download/$${FLO_TAG}/$${DEB}"
+curl -fsSL --retry 5 --retry-connrefused -o "$${WORK}/$${DEB}.sha256" "https://github.com/floruntime/flo/releases/download/$${FLO_TAG}/$${DEB}.sha256"
+(cd "$${WORK}" && sha256sum -c "$${DEB}.sha256")
+apt-get install -y -qq "$${WORK}/$${DEB}"
+rm -rf "$${WORK}"
+echo "[flo] installed $${DEB}"
 
 %{ if volume_enabled ~}
 # ---------------------------------------------------------------
-# Persistent block-storage volume for ${data_dir}.
+# Persistent block-storage volume for /var/lib/flo.
 #
 # DigitalOcean attaches volumes at boot when volume_ids is set on
 # the droplet, but the udev symlink can take a moment to settle —
 # wait for it before formatting / mounting.
 # ---------------------------------------------------------------
 DEVICE="${volume_device_path}"
-MOUNT_POINT="${data_dir}"
+MOUNT_POINT="/var/lib/flo"
 FSTYPE="${volume_filesystem_type}"
 
 echo "[flo] waiting for volume device $${DEVICE}"
@@ -93,48 +86,37 @@ mount -a
 echo "[flo] mounted $${DEVICE} at $${MOUNT_POINT}"
 %{ endif ~}
 
-# Data directory.
-install -d -o flo -g flo -m 0750 ${data_dir}
+# A fresh volume mounted over /var/lib/flo is root's; the service runs as flo.
+chown flo:flo /var/lib/flo
+chmod 0750 /var/lib/flo
 
-# systemd unit.
-cat > /etc/systemd/system/flo.service <<UNIT
-[Unit]
-Description=Flo Server
-Documentation=https://github.com/floruntime/flo
-After=network-online.target
-Wants=network-online.target
-# A crash loop ends as a visible failed unit, not restarts forever: 10 failed
-# starts within an hour. An hour, not minutes, because a server that panics
-# during log replay spends the replay on every attempt; a short window would
-# never see 10 of them.
-StartLimitIntervalSec=1h
-StartLimitBurst=10
+# The module's config replaces the package's loopback-only default. It can
+# hold the cluster secret: readable by the service, not by everyone.
+cat > /etc/flo/flo.toml <<'FLOTOML'
+${flotoml}
+FLOTOML
+chown root:flo /etc/flo/flo.toml
+chmod 640 /etc/flo/flo.toml
 
+mkdir -p /etc/systemd/system/flo.service.d
+# Back off from 5 s to 2 min between restarts, until the packaged unit
+# carries this itself (systemd 254+; the image is Ubuntu 24.04, systemd 255).
+cat > /etc/systemd/system/flo.service.d/backoff.conf <<'UNIT'
 [Service]
-Type=simple
-User=flo
-Group=flo
-ExecStart=/usr/local/bin/flo server start --config /etc/flo/flo.toml
-Restart=on-failure
-# Back off from 5 s to 2 min between attempts (systemd 254+; the image is
-# Ubuntu 24.04, systemd 255).
-RestartSec=5s
 RestartSteps=5
 RestartMaxDelaySec=2min
-LimitNOFILE=1048576
-# Tighten the runtime sandbox a bit; Flo only needs its data dir.
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-NoNewPrivileges=true
-ReadWritePaths=${data_dir}
-
-[Install]
-WantedBy=multi-user.target
 UNIT
+%{ if volume_enabled ~}
+# Never start on the root disk's empty /var/lib/flo when the volume is late or
+# missing (its fstab entry is nofail): a cluster member would come back with
+# an empty log under its old node id.
+cat > /etc/systemd/system/flo.service.d/volume.conf <<'UNIT'
+[Unit]
+RequiresMountsFor=/var/lib/flo
+UNIT
+%{ endif ~}
 
 systemctl daemon-reload
-systemctl enable flo
-systemctl restart flo
+systemctl enable --now flo
 
 echo "[flo] cloud-init complete; flo managed by systemd"

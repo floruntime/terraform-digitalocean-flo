@@ -2,8 +2,8 @@
 # terraform-digitalocean-flo
 #
 # Provisions a single DigitalOcean droplet running the Flo server.
-# Cloud-init installs Flo via the upstream installer script and
-# writes a flo.toml shaped by this module's inputs.
+# Cloud-init installs Flo from the release's .deb and writes a
+# flo.toml shaped by this module's inputs.
 #
 # Cluster mode (var.cluster_enabled = true) makes this node a member:
 # the first member (cluster_first_member = true) starts the cluster,
@@ -40,7 +40,6 @@ locals {
   user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
     flo_version            = var.flo_version
     flotoml                = local.flotoml
-    data_dir               = var.data_dir
     volume_enabled         = local.volume_enabled
     volume_device_path     = local.volume_device_path
     volume_filesystem_type = var.volume_filesystem_type
@@ -49,7 +48,6 @@ locals {
   flotoml = templatefile("${path.module}/templates/flo.toml.tftpl", {
     listen_port            = var.listen_port
     bind_address           = var.bind_address
-    data_dir               = var.data_dir
     shards                 = var.shards
     durability             = var.durability
     hot_buffer_capacity    = var.hot_buffer_capacity
