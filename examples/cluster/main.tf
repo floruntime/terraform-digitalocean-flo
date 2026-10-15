@@ -47,7 +47,7 @@ module "flo" {
   region      = var.region
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
 
-  flo_version  = "v0.1.0-dev.11"
+  flo_version  = "v0.1.0-dev.13"
   droplet_size = "s-4vcpu-8gb"
   listen_port  = local.listen_port
   shards       = 1

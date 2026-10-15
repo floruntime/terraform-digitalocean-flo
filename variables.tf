@@ -131,7 +131,7 @@ variable "extra_inbound_tcp_ports" {
 
 variable "flo_version" {
   type        = string
-  description = "Flo release tag to install (e.g. 'v0.1.0-dev.11'); the installer comes from that tag too. Empty means the newest release, prereleases included, with the installer from flo's dev branch. Pin in production for reproducibility."
+  description = "Flo release tag whose .deb to install (e.g. 'v0.1.0-dev.13'); its sha256 is checked. Empty means the newest release, prereleases included. Pin in production for reproducibility."
   default     = ""
 }
 
@@ -149,12 +149,6 @@ variable "bind_address" {
   type        = string
   description = "Address Flo binds the wire-protocol listener to."
   default     = "0.0.0.0"
-}
-
-variable "data_dir" {
-  type        = string
-  description = "Directory Flo stores its data in. Created and chowned by cloud-init."
-  default     = "/var/lib/flo"
 }
 
 variable "shards" {
@@ -252,12 +246,12 @@ variable "cluster_secret" {
 }
 
 # ---------------------------------------------------------------
-# Persistent storage (optional block-storage volume for data_dir)
+# Persistent storage (optional block-storage volume for /var/lib/flo)
 # ---------------------------------------------------------------
 
 variable "volume_size" {
   type        = number
-  description = "Size in GB of a DigitalOcean block-storage volume to provision and mount at var.data_dir. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement."
+  description = "Size in GB of a DigitalOcean block-storage volume to provision and mount at /var/lib/flo, where Flo keeps its data. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement."
   default     = 0
   validation {
     condition     = var.volume_size >= 0 && var.volume_size <= 16384

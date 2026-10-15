@@ -10,7 +10,22 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Changed
+- Droplets install flo from the release's `.deb` (sha256 checked) instead of
+  `scripts/install.sh` and a unit written by cloud-init: the binary, the `flo`
+  user and the systemd unit come from the package, so the service is defined
+  in one place and upgrades are package upgrades. The binary is now
+  `/usr/bin/flo`. Needs a release that ships packages (v0.1.0-dev.13 or later).
+  Droplets from earlier versions don't upgrade in place by installing the
+  package: their own unit overrides it and keeps running
+  `/usr/local/bin/flo`. Replace them, or remove that unit and binary first
+  (README, "Cloud-init is at-most-once").
+- With a volume, the service requires `/var/lib/flo` to be mounted, so a late
+  or missing volume no longer starts flo on an empty root-disk directory.
+
 ### Removed
+- **Breaking.** `data_dir`: Flo's data is always `/var/lib/flo`, the only path
+  the packaged unit lets it write. A volume (`volume_size > 0`) mounts there.
 - **Breaking.** `durability = "ephemeral"`: Flo now refuses it at startup,
   since nothing ever read it. Use `async_flush` or `sync`.
 
