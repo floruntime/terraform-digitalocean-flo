@@ -192,7 +192,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 |------|-------------|------|---------|:--------:|
 | <a name="input_api_allowed_cidrs"></a> [api\_allowed\_cidrs](#input\_api\_allowed\_cidrs) | CIDR blocks allowed to reach the Flo wire-protocol port (var.listen\_port) and extra\_inbound\_tcp\_ports. Empty opens nothing: clients reach the node over SSH or the private network until you name them. | `list(string)` | `[]` | no |
 | <a name="input_bind_address"></a> [bind\_address](#input\_bind\_address) | Address Flo binds the wire-protocol listener to. | `string` | `"0.0.0.0"` | no |
-| <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the peer port (listen\_port + 500). Only used when cluster\_enabled = true. Restrict to the cluster's network: the port carries membership and log contents. | `list(string)` | <pre>[<br/>  "0.0.0.0/0",<br/>  "::/0"<br/>]</pre> | no |
+| <a name="input_cluster_allowed_cidrs"></a> [cluster\_allowed\_cidrs](#input\_cluster\_allowed\_cidrs) | CIDR blocks allowed to reach the peer port (listen\_port + 500). Only used when cluster\_enabled = true. null (the default) allows the droplet's VPC, which members seeded with peer\_endpoint reach each other over. List addresses to reach members outside it (seed those with peer\_endpoint\_public). | `list(string)` | `null` | no |
 | <a name="input_cluster_enabled"></a> [cluster\_enabled](#input\_cluster\_enabled) | Make this droplet a cluster member. Requires cluster\_secret, and either cluster\_first\_member = true or cluster\_seeds. | `bool` | `false` | no |
 | <a name="input_cluster_first_member"></a> [cluster\_first\_member](#input\_cluster\_first\_member) | This droplet starts the cluster: it leads a group of one until the others join it. Exactly one member of a new cluster sets this; it takes no cluster\_seeds. | `bool` | `false` | no |
 | <a name="input_cluster_node_id"></a> [cluster\_node\_id](#input\_cluster\_node\_id) | This node's id within the cluster (1, 2, 3, ...). 0 derives one from hostname and port, which collides on cloned images; set it explicitly on members. | `number` | `0` | no |
@@ -226,6 +226,7 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="input_volume_filesystem_type"></a> [volume\_filesystem\_type](#input\_volume\_filesystem\_type) | Filesystem to format a freshly-created volume with. One of 'ext4' or 'xfs'. Existing filesystems on a re-attached volume are detected and never reformatted. | `string` | `"ext4"` | no |
 | <a name="input_volume_name"></a> [volume\_name](#input\_volume\_name) | Name of the DigitalOcean volume. Must be lowercase alphanumeric or hyphen, 1-64 chars. Empty (default) auto-derives from the droplet name. Only used when volume\_size > 0. | `string` | `""` | no |
 | <a name="input_volume_size"></a> [volume\_size](#input\_volume\_size) | Size in GB of a DigitalOcean block-storage volume to provision and mount at /var/lib/flo, where Flo keeps its data. 0 (default) keeps Flo's data on the droplet's root disk; any positive value provisions a volume that survives droplet replacement. | `number` | `0` | no |
+| <a name="input_vpc_uuid"></a> [vpc\_uuid](#input\_vpc\_uuid) | VPC to place the droplet in. Empty uses the region's default VPC. Cluster members in one VPC reach each other privately. | `string` | `""` | no |
 ## Outputs
 
 | Name | Description |
@@ -240,7 +241,8 @@ Apache-2.0 — see [LICENSE](./LICENSE).
 | <a name="output_ipv6_address"></a> [ipv6\_address](#output\_ipv6\_address) | Public IPv6 address of the droplet (empty if disabled). |
 | <a name="output_listen_endpoint"></a> [listen\_endpoint](#output\_listen\_endpoint) | host:port to point Flo clients (and the `flo` CLI) at. |
 | <a name="output_metrics_endpoint"></a> [metrics\_endpoint](#output\_metrics\_endpoint) | Prometheus metrics endpoint. Empty when enable\_metrics = false. |
-| <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port joining nodes list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
+| <a name="output_peer_endpoint"></a> [peer\_endpoint](#output\_peer\_endpoint) | host:port, on the droplet's private (VPC) address, that joining members in the same VPC list in their cluster\_seeds (the peer port, listen\_port + 500). Empty when cluster\_enabled = false. |
+| <a name="output_peer_endpoint_public"></a> [peer\_endpoint\_public](#output\_peer\_endpoint\_public) | host:port on the public address, for members outside this VPC; they also need their addresses in cluster\_allowed\_cidrs. Empty when cluster\_enabled = false. |
 | <a name="output_raft_port"></a> [raft\_port](#output\_raft\_port) | The peer port members talk over (listen\_port + 500). |
 | <a name="output_urn"></a> [urn](#output\_urn) | Droplet URN, useful when wiring further DigitalOcean resources. |
 | <a name="output_volume_id"></a> [volume\_id](#output\_volume\_id) | DigitalOcean volume ID mounted at /var/lib/flo. Empty when volume\_size = 0. |
