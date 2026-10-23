@@ -41,8 +41,13 @@ flo -e "$(terraform output -raw listen_endpoint)" kv set hello world
   service. `flo_version` pins the release.
 - **Optional cluster mode** — set `cluster_enabled = true` with a
   shared `cluster_secret`; one member sets `cluster_first_member`,
-  the rest list its `peer_endpoint` in `cluster_seeds`. The firewall
-  opens the peer port (`listen_port + 500`) between
+  the rest list its `peer_endpoint` in `cluster_seeds`. Members in
+  one VPC (`vpc_uuid`) peer over private addresses, and the firewall
+  opens the peer port (`listen_port + 500`) to that VPC only. Every
+  peer proves the cluster secret at the handshake whichever network it
+  comes from, so the private default is defence in depth, not the only
+  guard. Members outside the VPC (another region, another provider)
+  seed with `peer_endpoint_public` and need their addresses in
   `cluster_allowed_cidrs`.
 - **Project attachment**, **monitoring**, and **backups** toggles
   for production hygiene.
@@ -63,7 +68,7 @@ Flo derives all secondary ports from `listen_port` (default `9000`):
 | Path | What it shows |
 |---|---|
 | [`examples/minimal`](./examples/minimal) | Single node, module defaults: SSH only. |
-| [`examples/cluster`](./examples/cluster) | Three-node cluster: one first member, two joiners, reserved IPs. |
+| [`examples/cluster`](./examples/cluster) | Three-node cluster in one VPC: one first member, two joiners, reserved IPs. |
 
 ## After `terraform apply`
 

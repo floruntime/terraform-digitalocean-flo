@@ -10,7 +10,18 @@ Breaking changes can land on any minor bump (`0.x.0`) until
 
 ## [Unreleased]
 
+### Added
+- `vpc_uuid`, to place members in one VPC, and the `peer_endpoint_public`
+  output.
+
 ### Changed
+- **Breaking.** The peer port accepts only the droplet's VPC by default
+  (`cluster_allowed_cidrs = null`), and `peer_endpoint` is now the private
+  address, so members in one VPC peer privately. To reach members outside the
+  VPC, set `cluster_allowed_cidrs` to their addresses and seed with
+  `peer_endpoint_public`. The peer link is authenticated by the cluster secret
+  either way. `cluster_allowed_cidrs = []` is refused: it would open the port
+  to nothing.
 - Droplets install flo from the release's `.deb` (sha256 checked) instead of
   `scripts/install.sh` and a unit written by cloud-init: the binary, the `flo`
   user and the systemd unit come from the package, so the service is defined

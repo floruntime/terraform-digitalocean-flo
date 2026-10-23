@@ -53,7 +53,12 @@ output "metrics_endpoint" {
 }
 
 output "peer_endpoint" {
-  description = "host:port joining nodes list in their cluster_seeds (the peer port, listen_port + 500). Empty when cluster_enabled = false."
+  description = "host:port, on the droplet's private (VPC) address, that joining members in the same VPC list in their cluster_seeds (the peer port, listen_port + 500). Empty when cluster_enabled = false."
+  value       = var.cluster_enabled ? "${digitalocean_droplet.this.ipv4_address_private}:${local.raft_port}" : ""
+}
+
+output "peer_endpoint_public" {
+  description = "host:port on the public address, for members outside this VPC; they also need their addresses in cluster_allowed_cidrs. Empty when cluster_enabled = false."
   value       = var.cluster_enabled ? "${digitalocean_droplet.this.ipv4_address}:${local.raft_port}" : ""
 }
 

@@ -115,8 +115,19 @@ variable "expose_metrics" {
 
 variable "cluster_allowed_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to reach the peer port (listen_port + 500). Only used when cluster_enabled = true. Restrict to the cluster's network: the port carries membership and log contents."
-  default     = ["0.0.0.0/0", "::/0"]
+  description = "CIDR blocks allowed to reach the peer port (listen_port + 500). Only used when cluster_enabled = true. null (the default) allows the droplet's VPC, which members seeded with peer_endpoint reach each other over. List addresses to reach members outside it (seed those with peer_endpoint_public)."
+  default     = null
+
+  validation {
+    condition     = var.cluster_allowed_cidrs == null || length(coalesce(var.cluster_allowed_cidrs, [])) > 0
+    error_message = "cluster_allowed_cidrs = [] opens the peer port to nothing, so no member could reach this one. Leave it null for the droplet's VPC, or list the members' addresses."
+  }
+}
+
+variable "vpc_uuid" {
+  type        = string
+  description = "VPC to place the droplet in. Empty uses the region's default VPC. Cluster members in one VPC reach each other privately."
+  default     = ""
 }
 
 variable "extra_inbound_tcp_ports" {

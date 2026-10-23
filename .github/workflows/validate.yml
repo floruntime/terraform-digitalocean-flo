@@ -35,6 +35,17 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: terraform validate
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+      - run: terraform init -backend=false
+      # Plans against a mocked provider, so no token is needed.
+      - run: terraform test
+
   tflint:
     runs-on: ubuntu-latest
     steps:
