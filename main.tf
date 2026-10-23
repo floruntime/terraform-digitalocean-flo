@@ -23,6 +23,9 @@ locals {
   dashboard_port = var.listen_port + 2
   raft_port      = var.listen_port + 500
 
+  # The peer port's sources: the droplet's VPC unless the operator lists others.
+  cluster_cidrs = var.cluster_allowed_cidrs != null ? var.cluster_allowed_cidrs : [data.digitalocean_vpc.this.ip_range]
+
   dashboard_on_loopback = startswith(var.dashboard_bind_address, "127.") || contains(["::1", "localhost"], var.dashboard_bind_address)
 
   # Persistent volume wiring.
@@ -112,6 +115,7 @@ resource "digitalocean_droplet" "this" {
   monitoring = var.enable_monitoring
   backups    = var.enable_backups
   ipv6       = var.enable_ipv6
+  vpc_uuid   = var.vpc_uuid != "" ? var.vpc_uuid : null
 
   # Attaching at create time guarantees the device is present when
   # cloud-init runs. The mount step in user_data still waits for the
@@ -121,6 +125,11 @@ resource "digitalocean_droplet" "this" {
   user_data = local.user_data
 
   tags = concat(["flo", "flo-${var.environment}"], var.tags)
+}
+
+# The VPC the droplet landed in, for the peer port's default source range.
+data "digitalocean_vpc" "this" {
+  id = digitalocean_droplet.this.vpc_uuid
 }
 
 resource "digitalocean_firewall" "this" {
@@ -168,13 +177,14 @@ resource "digitalocean_firewall" "this" {
     }
   }
 
-  # Peer traffic between members — restricted to the cluster CIDRs.
+  # Peer traffic between members: the VPC by default. Every peer proves
+  # the cluster secret either way; this keeps the port off the internet too.
   dynamic "inbound_rule" {
     for_each = var.cluster_enabled ? [local.raft_port] : []
     content {
       protocol         = "tcp"
       port_range       = tostring(inbound_rule.value)
-      source_addresses = var.cluster_allowed_cidrs
+      source_addresses = local.cluster_cidrs
     }
   }
 
