@@ -142,7 +142,7 @@ variable "extra_inbound_tcp_ports" {
 
 variable "flo_version" {
   type        = string
-  description = "Flo release tag whose .deb to install (e.g. 'v0.1.0-dev.13'); its sha256 is checked. Empty means the newest release, prereleases included. Pin in production for reproducibility."
+  description = "Flo release tag whose .deb to install (e.g. 'v0.1.0-dev.14'); its sha256 is checked. Empty means the newest release, prereleases included. Pin in production for reproducibility."
   default     = ""
 }
 

@@ -86,4 +86,21 @@ run "no_peer_rule_or_endpoint_outside_a_cluster" {
     condition     = output.peer_endpoint == "" && output.peer_endpoint_public == ""
     error_message = "A single node has no peer endpoints."
   }
+  assert {
+    condition     = length(data.digitalocean_vpc.this) == 0
+    error_message = "A single node should not look up its VPC."
+  }
+}
+
+run "listed_cidrs_skip_the_vpc_lookup" {
+  command = apply
+
+  variables {
+    cluster_allowed_cidrs = ["198.51.100.7/32"]
+  }
+
+  assert {
+    condition     = length(data.digitalocean_vpc.this) == 0
+    error_message = "With CIDRs listed, the VPC isn't needed."
+  }
 }

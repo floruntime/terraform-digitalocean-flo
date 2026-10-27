@@ -24,7 +24,7 @@ locals {
   raft_port      = var.listen_port + 500
 
   # The peer port's sources: the droplet's VPC unless the operator lists others.
-  cluster_cidrs = var.cluster_allowed_cidrs != null ? var.cluster_allowed_cidrs : [data.digitalocean_vpc.this.ip_range]
+  cluster_cidrs = var.cluster_allowed_cidrs != null ? var.cluster_allowed_cidrs : [one(data.digitalocean_vpc.this[*].ip_range)]
 
   dashboard_on_loopback = startswith(var.dashboard_bind_address, "127.") || contains(["::1", "localhost"], var.dashboard_bind_address)
 
@@ -129,6 +129,10 @@ resource "digitalocean_droplet" "this" {
 
 # The VPC the droplet landed in, for the peer port's default source range.
 data "digitalocean_vpc" "this" {
+  # Read only when the peer rule needs it, so a single node makes no extra
+  # API call.
+  count = var.cluster_enabled && var.create_firewall && var.cluster_allowed_cidrs == null ? 1 : 0
+
   id = digitalocean_droplet.this.vpc_uuid
 }
 
