@@ -14,7 +14,7 @@ module "flo" {
   version = "~> 0.0.1"
 
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
-  flo_version = "v0.1.0-dev.13" # pin in production
+  flo_version = "v0.1.0-dev.14" # pin in production
 
   # The firewall opens only SSH unless you name who may connect.
   api_allowed_cidrs = ["203.0.113.0/24"]

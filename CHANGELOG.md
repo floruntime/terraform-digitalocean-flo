@@ -15,6 +15,9 @@ Breaking changes can land on any minor bump (`0.x.0`) until
   output.
 
 ### Changed
+- The droplet's VPC is looked up only when the peer rule needs it (a cluster
+  member with a firewall and no `cluster_allowed_cidrs`), so a single node
+  makes no extra API call. Examples pin flo v0.1.0-dev.14.
 - **Breaking.** The peer port accepts only the droplet's VPC by default
   (`cluster_allowed_cidrs = null`), and `peer_endpoint` is now the private
   address, so members in one VPC peer privately. To reach members outside the

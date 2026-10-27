@@ -43,7 +43,7 @@ module "first" {
   vpc_uuid    = digitalocean_vpc.cluster.id
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
 
-  flo_version  = "v0.1.0-dev.13"
+  flo_version  = "v0.1.0-dev.14"
   droplet_size = "s-4vcpu-8gb"
   listen_port  = local.listen_port
   shards       = 1
@@ -69,7 +69,7 @@ module "joiner" {
   vpc_uuid    = digitalocean_vpc.cluster.id
   ssh_key_ids = [data.digitalocean_ssh_key.main.id]
 
-  flo_version  = "v0.1.0-dev.13"
+  flo_version  = "v0.1.0-dev.14"
   droplet_size = "s-4vcpu-8gb"
   listen_port  = local.listen_port
   shards       = 1
